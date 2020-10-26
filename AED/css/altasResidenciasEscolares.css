@@ -1,0 +1,85 @@
+body{
+    background-image: url(Oxford.jpg);
+    background-size: 100vw 100vh;
+    background-attachment: fixed;
+    margin: 0;
+    font-family: monospace;
+}
+form{
+    width: 450px;
+    margin: auto;
+    background:white;
+    opacity:0.9;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    margin-top: 20px;
+    border-radius: 7px;
+}
+.nombreResidencia, .precioMensual{
+    width: 50%;
+    margin-bottom: 20px;
+    padding: 7px;
+    box-sizing: border-box;
+    font-size: 17px;
+}
+.TablaResidencias,.insertarResidencia,.modificarResidencia{
+    width: 45%;
+    margin-bottom: 20px;
+    padding: 7px;
+    box-sizing: border-box;
+    font-size: 17px;
+}
+#boton:hover{
+    cursor: pointer;
+} 
+@media(max-width:480px){
+    form{
+        width: 50%;
+    }
+}
+label{
+    font-weight: normal;
+    font-weight: bold;
+}
+.comboUniversidades{
+    padding: 10px 18px 10px 10px;
+    border: 1px solid gray;
+    border-radius: 3px;
+    min-width: 6em;
+    font-family: “Franklin Gothic Medium”;
+    font-size: 15px;
+}
+
+
+.TablaResidencias,.insertarResidencia{
+    background: #eb94d0;
+    /* Crear degradados */
+    background-image: -webkit-linear-gradient(top, #94ebae, #2079b0);
+      background-image: -moz-linear-gradient(top, #94ebae, #2079b0);
+      background-image: -ms-linear-gradient(top, #94ebae, #2079b0);
+      background-image: -o-linear-gradient(top, #94ebae, #2079b0);
+      background-image: linear-gradient(to bottom, #94ebae, #2079b0);
+    /* Dar bordes curvados a btn */
+    -webkit-border-radius: 28;
+      -moz-border-radius: 28;
+      border-radius: 28px;
+    text-shadow: 3px 2px 1px #9daef5;
+      -webkit-box-shadow: 6px 5px 24px #666666;
+      -moz-box-shadow: 6px 5px 24px #666666;
+      box-shadow: 6px 5px 24px #666666;
+    font-family: Arial;
+      color: #fafafa;
+      font-size: 15px;
+      padding: 19px;
+      text-decoration: none;
+    }
+    /* Al poner el curso encima (hover) */
+    .TablaResidencias:hover,.insertarResidencia:hover{
+      background: #2079b0;
+      background-image: -webkit-linear-gradient(top, #2079b0, #eb94d0);
+      background-image: -moz-linear-gradient(top, #2079b0, #eb94d0);
+      background-image: -ms-linear-gradient(top, #2079b0, #eb94d0);
+      background-image: -o-linear-gradient(top, #2079b0, #eb94d0);
+      background-image: linear-gradient(top bottom, #2079b0, #eb94d0);
+      text-decoration: none;
+    }

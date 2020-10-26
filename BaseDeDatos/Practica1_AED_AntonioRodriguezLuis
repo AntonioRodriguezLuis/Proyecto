@@ -1,0 +1,256 @@
+/*Antonio Rodriguez Luis*/
+/*DROP DATABASE bdResidenciasEscolares;*/
+CREATE DATABASE bdResidenciasEscolares;
+USE bdResidenciasEscolares;
+
+CREATE TABLE  IF NOT EXISTS universidades(codUniversidad char(6), 
+CONSTRAINT pk_universidad PRIMARY KEY (codUniversidad),
+ nomUniversidad varchar(30) DEFAULT "La Laguna");
+
+
+CREATE TABLE IF NOT EXISTS residencias(codResidencia int AUTO_INCREMENT, CONSTRAINT PK_codResidencia PRIMARY KEY (codResidencia),
+nomResidencia varchar(30),codUniversidad char(6), precioMensual int DEFAULT 900, comedor boolean DEFAULT 0);
+
+ALTER TABLE residencias
+ADD
+CONSTRAINT FK_codUniversidad FOREIGN KEY (codUniversidad) REFERENCES universidades(codUniversidad);
+
+CREATE TABLE IF NOT EXISTS estudiantes(codEstudiante int , CONSTRAINT PK_codEstudiante PRIMARY KEY(codEstudiante),nomEstudiante varchar(50),dni char(9),
+ CONSTRAINT U_dni UNIQUE(dni),telefonoEstudiante char(9), CONSTRAINT U_telefonoEstudiante UNIQUE (telefonoEstudiante));
+
+CREATE TABLE IF NOT EXISTS estancias(codEstudiante int,codResidencia int,fechaInicio date, fechaFin date, preciopagado int,
+CONSTRAINT PK_codEstudianteEstancias PRIMARY KEY(codEstudiante,codResidencia,fechaInicio),
+CONSTRAINT FK_codEstudiante FOREIGN KEY(codEstudiante) REFERENCES estudiantes(codEstudiante),
+CONSTRAINT FK_codResidenciaEstancias FOREIGN KEY(codResidencia) REFERENCES residencias(codResidencia),
+CONSTRAINT CH_preciopagado CHECK(preciopagado >0));
+
+/*Insertar datos en las tablas*/
+
+INSERT INTO universidades VALUES('UNHARV','Universidad de Harvard'),
+('UNOXFO','Universidad de Oxford'),
+('UNCAMB','Universidad de Cambridge'),
+('UNSTAN','Universidad de Stanford'),
+('UNCALI','Universidad de California'),
+('UNLAGU',DEFAULT);
+
+INSERT INTO residencias(nomResidencia,codUniversidad,precioMensual,comedor) 
+VALUES('Residencia 1','UNHARV',1000,0),
+('Residencia 2','UNOXFO',DEFAULT,1),
+('Residencia 3','UNCAMB',DEFAULT,0),
+('Residencia 4','UNSTAN',1500,1),
+('Residencia 5','UNCALI',1200,0),
+('Residencia 6','UNLAGU',2000,1);
+
+INSERT INTO estudiantes values(1,'Pablo Urtiaga','12345678A', '888333222'),
+(2,'Antonio Rodriguez','22345678B', '899339222'),
+(3,'Pepe Lopez','12315623C', '882223222'),
+(4,'Ricardo Luis','12378078R', '844333222'),
+(5,'Ana Perez','12302378T', '888333666'),
+(6,'Raul Gonzalez','19634678P', '111333999');
+
+
+
+INSERT INTO estancias VALUES
+(1,1,'2018-09-10','2018-10-10',1000),
+(2,2,'2017-09-20','2017-12-20',900),
+(3,3,'2017-01-02','2017-07-02',900),
+(4,4,'2018-01-30','2018-04-30',1500),
+(5,5,'2016-09-10','2016-10-10',1200),
+(6,6,'2019-01-15','2019-06-15',2000),
+(2,2,'2019-07-10','2019-10-10',900),
+(1,1,'2017-02-14','2017-05-14',1000),
+(3,3,'2018-01-01','2018-11-01',900),
+(5,5,'2019-02-21','2019-06-21',1200);
+
+
+/*Crear un procedimiento almacenado que liste todos las estancias de cierto alumno pasando por
+parámetro de entrada el dni del alumno ordenado por fecha de inicio.
+Los datos a visualizar serán: Nombre de residencia, nombre de universidad, fecha de
+inicio,fecha de fin y precio de la estancia.*/
+
+DELIMITER //
+CREATE PROCEDURE SP_procedimiento1(IN dni char(9))
+BEGIN 
+	SELECT nomResidencia,nomUniversidad,fechaInicio,fechaFin,precioMensual FROM estancias
+	INNER JOIN residencias on residencias.codResidencia = estancias.codResidencia
+	INNER JOIN universidades on universidades.codUniversidad = residencias.codUniversidad
+    INNER JOIN estudiantes on estudiantes.codEstudiante = estancias.codEstudiante
+    WHERE estudiantes.dni = dni
+	ORDER BY fechaInicio ASC;
+END
+//
+DELIMITER ;
+/*
+CALL SP_procedimiento1('22345678B');
+SELECT @a;
+*/
+/*Crear un procedimiento almacenado que inserte una residenciaEscolar, de modo que se le pase como
+parámetros todos los datos.
+Comprobar que el codigo de universidad pasado exista en la tabla universidades. En caso de
+que no exista la universidad que no inserte .
+Devolver en un parámetro de salida: 0 si la universidad no existe y 1 si la universidad existe.
+Devolver en otro parámetro de salida 0 si la residencia no se insertó y 1 si la inserción fue
+correcta.*/
+
+DELIMITER //
+CREATE PROCEDURE SP_insertResidenciaEscolar (IN paramNomResidencia varchar(30),paramCodUniversidad char(6), paramPrecioMensual int , paramComedor boolean,
+ OUT codErrorUniver int, OUT codErrorReside int)
+BEGIN
+	SET codErrorUniver = 0;
+	SET codErrorReside = 0;
+	IF((SELECT COUNT(codUniversidad) FROM universidades where universidades.codUniversidad = paramCodUniversidad)= 1) THEN
+			INSERT INTO residencias(nomResidencia,codUniversidad,precioMensual,comedor)values(paramNomResidencia, paramCodUniversidad, paramPrecioMensual,
+                                                                                              paramComedor);
+			SET codErrorUniver = 1;
+			SET codErrorReside = 1;
+		END IF;
+END
+//
+DELIMITER ;
+/* Una residencia nueva con una universidad existente*/
+/*CALL SP_insertResidenciaEscolar('Residencia 7','UNLAGU',2000,1,@codErrorUniver,@codErrorReside);
+SELECT @codErrorUniver, @codErrorReside;*/
+
+/* Una residencia nueva con una universidad no existente*/
+/*CALL SP_insertResidenciaEscolar('Residencia 8','PEPEPD',2000,0,@codErrorUniver,@codErrorReside);
+SELECT @codErrorUniver, @codErrorReside;*/
+
+/*Crear un procedimiento almacenado que indicándole una universidad (nombre) y precioMensual ,
+devuelva en un parámetro de salida la cantidad de residencias que hay en esa universidad y en otro
+parámetro de salida la cantidad de residencias de esa universidad pero con un precioMensual inferior
+al indicado.*/
+
+DELIMITER //
+CREATE PROCEDURE SP_nombreUniversidadPrec (IN paramNomUniversidad varchar(30), paramPrecioMensual int, OUT cantidadResidencias int, OUT cantidadResidenciasPrecio int)
+BEGIN
+	SELECT count(codResidencia)INTO cantidadResidencias FROM universidades 
+	INNER JOIN residencias ON residencias.codUniversidad = universidades.codUniversidad
+	where universidades.nomUniversidad = paramNomUniversidad;
+
+	SELECT count(codResidencia)INTO cantidadResidenciasPrecio FROM universidades 
+	INNER JOIN residencias ON residencias.codUniversidad = universidades.codUniversidad
+	where residencias.precioMensual > paramPrecioMensual and universidades.nomUniversidad = paramNomUniversidad;
+END
+//
+DELIMITER ;
+/*Muestra el numero de residencias que tiene esa universidad con un precio mensual inferior*/
+/*CALL SP_nombreUniversidadPrec('La Laguna',900,@codErrorUniver,@codErrorReside);
+SELECT @codErrorUniver, @codErrorReside;*/
+/*Muestra el numero de residencias que tiene esa universidad  con un precio mensual igual*/
+/*CALL SP_nombreUniversidadPrec('La Laguna',2500,@codErrorUniver,@codErrorReside);
+SELECT @codErrorUniver, @codErrorReside;*/
+
+/*Crear una función que dándole un dni de un alumno nos devuelva en número de meses 
+el tiempo que ha estado en residencias escolares en total
+ ( contando todos las residencias en las que ha estado )*/
+
+DELIMITER //
+CREATE FUNCTION FN_MesesEstancia (paramDni char(9)) RETURNS INT
+
+    RETURN (SELECT sum(TIMESTAMPDIFF(MONTH, estancias.fechaInicio, estancias.fechaFin))as NumeroDeMesesTotales 
+    FROM estancias
+    INNER JOIN estudiantes ON estudiantes.codEstudiante = estancias.codEstudiante
+    INNER JOIN residencias ON residencias.codResidencia = estancias.codResidencia
+    WHERE estudiantes.dni = paramDni
+    GROUP BY estancias.codEstudiante);
+//
+DELIMITER ; 
+Select FN_MesesEstancia('12315623C');
+
+/*HACEMOS OTRA FUNCION QUE NOS DEVUELVA EL PRECIO TOTAL PAGADO DURANTE TODA SU ESTANCIAS EN CUALQUIER RESIDENCIA*/
+
+DELIMITER //
+CREATE FUNCTION FN_MesesEstanciaPagados (paramDni char(9)) RETURNS INT
+
+    RETURN (SELECT (sum(TIMESTAMPDIFF(MONTH, estancias.fechaInicio, estancias.fechaFin)) * residencias.precioMensual)as PrecioTotalPagado FROM estancias
+INNER JOIN estudiantes ON estudiantes.codEstudiante = estancias.codEstudiante
+INNER JOIN residencias ON residencias.codResidencia = estancias.codResidencia
+WHERE estudiantes.dni = paramDni
+GROUP BY estancias.codEstudiante);
+//
+DELIMITER ; 
+Select FN_MesesEstanciaPagados('12315623C');
+
+
+/*Hacer un Trigger que si en la tabla estancias al insertar o modificar ponemos
+la fecha inicio posterior a la de fin que las intercambie.*/
+DELIMITER //
+CREATE TRIGGER TR_ModificarFechasInsert
+BEFORE INSERT ON estancias
+FOR EACH ROW
+BEGIN
+	DECLARE fechaNueva DATE;
+	IF(NEW.fechaInicio > NEW.fechaFin) THEN
+	SET fechaNueva = NEW.fechaInicio;
+	SET NEW.fechaInicio = NEW.fechaFin;
+	SET NEW.fechaFin = fechaNueva;
+    END IF;
+END
+//
+DELIMITER ;
+/*INSERT INTO estancias VALUES(1,1,'2015-10-10','2015-02-10',1000);*/
+
+DELIMITER //
+CREATE TRIGGER TR_ModificarFechasUpdate
+BEFORE UPDATE ON estancias
+FOR EACH ROW
+BEGIN
+	DECLARE fechaNueva DATE;
+	IF(NEW.fechaInicio > NEW.fechaFin) THEN
+	SET fechaNueva = NEW.fechaInicio;
+	SET NEW.fechaInicio = NEW.fechaFin;
+	SET NEW.fechaFin = fechaNueva;
+    END IF;
+END
+//
+DELIMITER ;
+/*
+UPDATE estancias
+SET fechaInicio ='2018-05-30'
+WHERE estancias.codEstudiante = 4 AND estancias.codResidencia= 4;
+*/
+/*Hacer un Trigger que en la tabla ResidenciasEscolares al insertar o modificar
+el precioMensual, no permitirá que sea menor que 900.*/
+DELIMITER //
+CREATE TRIGGER TR_PrecioMensualInsert
+BEFORE  INSERT ON residencias
+FOR EACH ROW
+BEGIN
+IF(NEW.precioMensual < 900) THEN
+signal sqlstate '45000' set message_text='No se puede introducir un precio mensual inferior a 900'; 
+END IF;
+END
+//
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER TR_PrecioMensualUpdate
+BEFORE  UPDATE ON residencias
+FOR EACH ROW
+BEGIN
+IF(NEW.precioMensual < 900) THEN
+signal sqlstate '45000' set message_text='No se puede introducir un precio mensual inferior a 900'; 
+END IF;
+END
+//
+DELIMITER ;
+/* Prueba
+UPDATE residencias
+SET precioMensual = 800
+where codResidencia = 4;*/
+
+/*Hacer un Trigger que no permita eliminar ninguna Universidad*/
+
+DELIMITER //
+CREATE TRIGGER TR_NoEliminarUniversidad
+BEFORE  DELETE ON universidades
+FOR EACH ROW
+BEGIN
+signal sqlstate '45000' set message_text='No se puede borrar ninguna universidad'; 
+END
+//
+DELIMITER ;
+
+/*Prueba
+DELETE universidades
+where codUniversidad = 1;*/
